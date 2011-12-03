@@ -1,2 +1,14 @@
 Implementation of Image Segmentation with Topic Random Field (Zhao,
 Fei-Fei, and Xing).
+
+References:
+B. Zhao, L. Fei-Fei and E. P. Xing. Image Segmentation with Topic
+Random Fields. European Conference of Computer Vision (ECCV), 2010
+
+David M. Blei, Andrew Y. Ng and Michael I. Jordan. Latent Dirichlet
+Allocation. Journal of Machine Learning Research, vol. 3,
+pp.993--1022, 2003. 
+
+LDA matlab package by Daichi Mochihashi, NTT Communication Science
+Laboratories 
+http://chasen.org/~daiti-m/dist/lda/
