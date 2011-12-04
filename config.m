@@ -53,7 +53,7 @@ Learn.Num_Prototypes = 2;
 Learn.Max_Iterations  = 100;
 
 % Max number of VB-EM iterations for a document
-Learn.Doc_Max_Iterations = 20;
+Learn.V_Max_Iterations = 20;
 
 %%%%%
 %% EXPERIMENT SETTINGS

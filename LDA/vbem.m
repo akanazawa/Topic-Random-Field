@@ -10,14 +10,15 @@ function [alpha,q] = vbem(d,beta,alpha0,emmax)
 if nargin < 4
   emmax = 20;
 end
-l = length(d.id);
-k = length(alpha0);
-q = zeros(l,k);
-nt = ones(1,k) * l / k;
+l = length(d.id); % num of unique feat in this doc
+k = length(alpha0); % num of topics
+q = zeros(l,k); % 
+nt = ones(1,k) * l / k; %sum_l psinT+1
 pnt = nt;
 for j = 1:emmax
   % vb-estep
-  q = mnormalize(beta(d.id,:) * diag(exp(psi(alpha0 + nt))),2);
+  q = mnormalize(beta(d.id,:) * diag(exp(psi(alpha0 + nt))) ,2);
+  % beta(d.id, :) => l by K * (K,K)
   % vb-mstep
   nt = d.cnt * q;
   % converge?

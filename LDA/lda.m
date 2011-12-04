@@ -33,7 +33,7 @@ for j = 1:emmax
   for i = 1:n
     [gamma,q] = vbem(d{i},beta,alpha,demmax);
     gammas(i,:) = gamma;
-    betas = accum_beta(betas,q,d{i});
+    betas = accum_beta(betas,q,d{i}); %q=phi, 
   end
   % vb-mstep
   alpha = newton_alpha(gammas);

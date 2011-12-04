@@ -6,39 +6,66 @@ function [alpha,sig,beta,mu,delta] = trf(data, Learn)
 %
 % Look at the config file for the default parameter settings and their size
 
-n = length(data);
+D = length(data);
 
-l = features(d);
-
-beta = ones(l,k) / l;
+m = size(data{1},2);
+k = Learn.Num_Topics;
+l = Learn.Num_Prototypes;
+% initialize parameters
 alpha = normalize(fliplr(sort(rand(1,k))));
-gammas = zeros(n,k);
+beta = ones(l,k)/l;
+sig = 1;
+mu = ones(l,k,m);
+del = ones(l,k);
+
+gammas = zeros(D);
+xis = zeros(l,k);
+rhos = zeros(D,k);
+lambdas = zeros(D,1);
+
+
 lik = 0;
-plik = lik;
+pre_lik = lik;
+
 tic;
 
-fprintf(1,'number of documents      = %d\n', n);
-fprintf(1,'number of words          = %d\n', l);
-fprintf(1,'number of latent classes = %d\n', k);
-
-for j = 1:emmax
-  fprintf(1,'iteration %d/%d..\t',j,emmax);
+for j = 1:Learn.Max_Iterations
+  fprintf(1,'iteration %d/%d..\t',j,Learn.Max_Iterations);
 
   %% vb-estep
-  betas = zeros(l,k);
+  %  betas = zeros(l,k);
 
-  for i = 1:n
-    [gamma,q] = vbem(d{i},beta,alpha,demmax);
-    gammas(i,:) = gamma;
-    betas = accum_beta(betas,q,d{i});
+  for d = 1:D
+    [gamma,xi_n,rho,lambda] = vbem(data{d},beta,alpha,mu,delta,sig,Learn);
+    gammas(d,:) = gamma;
+    Nd = size(data{d},1);
+    tmp = zeros(l,k);
+    %    beta = beta + xi'rho;
+    % iteratively do vb-mstep
+    for n=1:Nd        
+        dd = data{d};
+        dataAtN =dd(n,:);
+        xiRho = xi(n,:)'*rho(n,:);
+        for l=1:L
+            for k=1:K
+                mu(l,k,:) = mu(l,k,:) + dataAtN*xiRho(l,k);
+                del(l,k) = del(l,k) + xiRho(l,k)*(dataAtN-mu(l,k,:))'* ...
+                    (dataAtN-mu(l,k,:));
+                %                sig = sig + 1/numEdges * log 
+            end
+        end        
+        beta = beta + xi(n,:)'*rho(n,:); % (1xl)' * (1xk)
+    end
+    %    beta = beta + xi'*rho; %(1 x l)' * (1 x k) = l x k
+    lambdas(d) = lambda;    
   end
-  % vb-mstep
 
+  % M-step of alpha and normalize beta
   alpha = newton_alpha(gammas);
-  beta = mnormalize(betas,1);
-
+  beta = mnormalize(beta, 1);
+  
   % converge?
-  lik = trf_lik(d,beta,gammas);
+  lik = trf_lik(data{d},beta,gammas);
 
   fprintf(1,'likelihood = %g\t',lik);
   if (j > 1) && converged(lik,plik,1.0e-4)

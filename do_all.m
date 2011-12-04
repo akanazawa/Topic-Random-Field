@@ -9,7 +9,8 @@ function do_all(config)
 % generate random indices for training and test frames
 %do_random_indices(config);
 
-% over segment each images
+% over segment each images 
+% for each d images, oversegment
 do_overSegmentImages(config);
 
 % Extract features from each images
