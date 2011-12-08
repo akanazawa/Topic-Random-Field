@@ -1,13 +1,24 @@
 function [alpha,sig,beta,mu,delta] = trf(data, Learn)
-% TRF based on LDA, standard model.
-% Copyright (c) 2004 Daichi Mochihashi, all rights reserved.
-% 
+%%%%%%%%%%
+% trf.m
+% Learn parameters for TRF and save
+% INPUT:
+%    - data: cell array of data in format:
+%          data{1}:
+%                img: [240x320x3 uint8]
+%             labels: [240x320 double]
+%              segs2: [240x320 double]
+%              feat2: [115x119 double]
+%          segLabels: [115x1 double]
+%                adj: [115x115 logical]
+%
+%    - Learn: parameters specificed in config.m
+%
+% based on LDA code by Daichi Mochihashi.
+%
 % Modified by Angjoo Kanazawa/Austin Myers/Abhishek Sharma
 %
-% Look at the config file for the default parameter settings and their size
-
 D = length(data);
-
 m = size(data{1},2);
 k = Learn.Num_Topics;
 l = Learn.Num_Prototypes;

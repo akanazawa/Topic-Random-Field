@@ -16,16 +16,30 @@ IMAGE_DIR = [ 'images/' ];
 % Data directory - holds all intermediate .mat files
 DATA_DIR = [ 'data/' ];   
 
+trainListName = [DATA_DIR,'trainList.txt'];
+evalListName = [DATA_DIR,'evalList.txt'];
+
+allData_fname = [DATA_DIR,'iccv09-1-allNeighborPairs_train_tiny.mat'];
+evalData_fname = [DATA_DIR,'iccv09-1-allNeighborPairs_train_tiny.mat']; %'iccv09-1-allNeighborPairs_eval.mat"
 %%%%
 %% GLOBAL PARAMETERS
 %%%%
 
 %% Feature representation of all images
-% should be a numImages x 1 cell array where each cell stores N_d x S matrix where N_d is the number of segments in image d, and S is the length of the feature vector
-Global.All_features = [DATA_DIR, 'allFeatures.mat'];
+% DEPRECIATED: should be a numImages x 1 cell array where each cell stores N_d x S matrix where N_d is the number of segments in image d, and S is the length of the feature vector
+% NOW, FOLLOWING RNN FORMAT:
+% the data is in format:
+% allData{1}:
+%           img: [240x320x3 uint8]
+%        labels: [240x320 double]
+%         segs2: [240x320 double]
+%         feat2: [115x119 double]
+%     segLabels: [115x1 double]
+%           adj: [115x115 logical]
+
 
 %% model parameters saved
-Global.Model_name = [DATA_DIR, 'TRF_model.mat'];
+model_name = [DATA_DIR, 'TRF_model.mat'];
 
 %%%%%
 %% OVERSEGMENATAION SETTINGS
@@ -34,7 +48,7 @@ Global.Model_name = [DATA_DIR, 'TRF_model.mat'];
 %%%%%
 %% FEATURE EXTRACTION SETTINGS
 %%%%%
-Feature.length = 1000;
+
 
 %%%%%
 %% LEARNING SETTINGS
@@ -58,9 +72,3 @@ Learn.V_Max_Iterations = 20;
 %%%%%
 %% EXPERIMENT SETTINGS
 %%%%%
-%% relative sizes of training and test sets 
-%% 0.5 = equal; <0.5 = more testing; >0.5 = more training
-Experiment.Train_Test_Portion = 0.5;
-
-
-
