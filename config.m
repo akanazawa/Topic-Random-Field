@@ -58,7 +58,7 @@ model_name = [DATA_DIR, 'TRF_model.mat'];
 Learn.Num_Neighbors = 2;
 
 % How many topics in TRF
-Learn.Num_Topics = 2;
+Learn.Num_Topics = 3;
 
 % How many prototypes in a topic
 Learn.Num_Prototypes = 2;

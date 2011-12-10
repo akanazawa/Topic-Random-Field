@@ -18,10 +18,13 @@ function [alpha,sig,beta,mu,delta] = trf(data, Learn)
 %
 % Modified by Angjoo Kanazawa/Austin Myers/Abhishek Sharma
 %
+
+
 D = length(data);
-m = size(data{1},2);
+m = size(data{1}.feat2,2); %number of features
 k = Learn.Num_Topics;
 l = Learn.Num_Prototypes;
+
 % initialize parameters
 alpha = normalize(fliplr(sort(rand(1,k))));
 beta = ones(l,k)/l;
@@ -29,29 +32,24 @@ sig = 1;
 mu = ones(l,k,m);
 del = ones(l,k);
 
-gammas = zeros(D);
+gammas = zeros(D, k);
 xis = zeros(l,k);
 rhos = zeros(D,k);
 lambdas = zeros(D,1);
-
-
 lik = 0;
 pre_lik = lik;
 
 tic;
-
 for j = 1:Learn.Max_Iterations
-  fprintf(1,'iteration %d/%d..\t',j,Learn.Max_Iterations);
+  fprintf(1,'iteration %d/%d..\n',j,Learn.Max_Iterations);
 
   %% vb-estep
-  %  betas = zeros(l,k);
-
   for d = 1:D
-    [gamma,xi_n,rho,lambda] = vbem(data{d},beta,alpha,mu,delta,sig,Learn);
+    [gamma,xi_n,rho,lambda] = vbem(data{d},beta,alpha,mu,del,sig,Learn);
+    keyboard
     gammas(d,:) = gamma;
-    Nd = size(data{d},1);
+    Nd = length(data{d}.segLabels); % number of regions
     tmp = zeros(l,k);
-    %    beta = beta + xi'rho;
     % iteratively do vb-mstep
     for n=1:Nd        
         dd = data{d};
@@ -76,7 +74,8 @@ for j = 1:Learn.Max_Iterations
   beta = mnormalize(beta, 1);
   
   % converge?
-  lik = trf_lik(data{d},beta,gammas);
+  %  lik = trf_lik(data{d},beta,gammas);
+  % if the parameters stop changes: ah, sig, beta, mu, delta
 
   fprintf(1,'likelihood = %g\t',lik);
   if (j > 1) && converged(lik,plik,1.0e-4)
@@ -91,8 +90,7 @@ for j = 1:Learn.Max_Iterations
   plik = lik;
   % ETA
   elapsed = toc;
-  fprintf(1,'ETA:%s (%d sec/step)\r', ...
-	  rtime(elapsed * (emmax / j  - 1)),round(elapsed / j));
+  fprintf(1,'ETA:%s (%d sec/step)\r',rtime(elapsed * (Learn.Max_Iterations / j  - 1)),round(elapsed / j));
 end
 fprintf(1,'\n');
 

@@ -1,4 +1,4 @@
-function [alpha,beta] = do_trf(train,k,emmax,demmax)
+function [alpha,beta] = do_trf(config_file)
 %%%%%%%%%%
 % do_trf.m
 % wrapper of Topic Random Model based on LDA, the standard model (no gibbs sampling).
@@ -15,10 +15,14 @@ function [alpha,beta] = do_trf(train,k,emmax,demmax)
 
 
 %% Evaluate global configuration file and load parameters
-val(config_file);
+eval(config_file);
 
 % load data computed previously by do_extractFeatures.m
 load(allData_fname,'allData','goodPairsL','goodPairsR','badPairsL','badPairsR','onlyGoodL','onlyGoodR','onlyGoodLabels','allSegs','allSegLabels');
+
+
+%% add MRF information
+%[allDataMRF] = initMRF(allData);
 
 %%% Call the actual EM routine
 [alpha,sig,beta,mu,delta] = trf(allData,Learn);
