@@ -1,4 +1,4 @@
-function [alpha,sig,beta,mu,delta] = trf(data, Learn)
+function [alpha,sig,beta,mu,del] = trf(data, Learn)
 %%%%%%%%%%
 % trf.m
 % Learn parameters for TRF and save

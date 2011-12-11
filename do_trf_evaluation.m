@@ -16,7 +16,7 @@ load(allData_fname,'allData','allSegs','allSegLabels');
 
 load(model_name,'alpha','sig','beta','mu','delta', 'Learn');
 
-allResults = cells(1,length(allData));
+allResults = cell(1,length(allData));
 keyboard
 for d = 1:length(allData)
     %  label all regions, save in allResults
