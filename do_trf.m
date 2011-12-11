@@ -18,7 +18,7 @@ function [alpha,beta] = do_trf(config_file)
 eval(config_file);
 
 % load data computed previously by do_extractFeatures.m
-load(allData_fname,'allData','goodPairsL','goodPairsR','badPairsL','badPairsR','onlyGoodL','onlyGoodR','onlyGoodLabels','allSegs','allSegLabels');
+load(allData_fname,'allData','allSegs','allSegLabels');
 
 
 %% add MRF information

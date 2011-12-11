@@ -37,7 +37,7 @@ gammas = zeros(D, K);
 % rhos = zeros(D,K);
 lambdas = zeros(D,1);
 lik = 0;
-pre_ah = ah;
+pre_alpha = alpha;
 pre_beta = beta;
 pre_mu = mu;
 pre_del = del;
@@ -72,7 +72,6 @@ for j = 1:Learn.Max_Iterations
 
   % M-step of alpha and normalize beta
   alpha = newton_alpha(gammas);
-  keyboard
   beta = mnormalize(beta, 1);
   
   % converge?
@@ -80,7 +79,7 @@ for j = 1:Learn.Max_Iterations
   % if the parameters stop changes: ah, sig, beta, mu, delta
 
   %  fprintf(1,'likelihood = %g\t',lik);
-  if (j > 1) && converged(ah,pre_ah,1.0e-4) && converged(beta,pre_beta,1.0e-4) && converged(mu,pre_mu,1.0e-4) && converged(del,pre_del,1.0e-4) && converged(sig,pre_sig,1.0e-4)
+  if (j > 1) && converged(alpha,pre_alpha,1.0e-4) && converged(beta,pre_beta,1.0e-4) && converged(mu,pre_mu,1.0e-4) && converged(del,pre_del,1.0e-4) && converged(sig,pre_sig,1.0e-4)
     if (j < 5)
       fprintf(1,'tooearly???\n');
       keyboard
@@ -90,7 +89,7 @@ for j = 1:Learn.Max_Iterations
     fprintf(1,'\nconverged.\n');
     return;
   end
-  pre_ah = ah;
+  pre_alpha = alpha;
   pre_beta = beta;
   pre_mu = mu;
   pre_del = del;
