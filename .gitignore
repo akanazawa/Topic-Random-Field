@@ -21,6 +21,9 @@ Segmentation/prompt/
 *.la
 *.a
 
+# emacs stuff
+*.*#
+
 # latex stuff
 *.aux
 *.bbl
