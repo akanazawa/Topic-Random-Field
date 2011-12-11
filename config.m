@@ -55,7 +55,7 @@ model_name = [DATA_DIR, 'TRF_model.mat'];
 %%%%%
 
 % Number of K neighbors in making MRF
-Learn.Num_Neighbors = 2;
+Learn.Num_Neighbors = 4;
 
 % How many topics in TRF
 Learn.Num_Topics = 3;

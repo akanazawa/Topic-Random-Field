@@ -24,7 +24,7 @@ D = length(data);
 m = size(data{1}.feat2,2); %number of features
 K = Learn.Num_Topics;
 L = Learn.Num_Prototypes;
-
+E = Learn.Num_Neighbors;
 % initialize parameters
 alpha = normalize(fliplr(sort(rand(1,K))));
 beta = ones(L,K)/L;
@@ -35,7 +35,7 @@ del = ones(L,K);
 gammas = zeros(D, K);
 % xis = zeros(L,K);
 % rhos = zeros(D,K);
-lambdas = zeros(D,1);
+lams = 0;
 lik = 0;
 pre_alpha = alpha;
 pre_beta = beta;
@@ -62,17 +62,26 @@ for j = 1:Learn.Max_Iterations
                 mu(l,k,:) = squeeze(mu(l,k,:)) + dataAtN*xiRho(l,k);
                 del(l,k) = del(l,k) + xiRho(l,k)*(dataAtN-squeeze(mu(l,k,:)))'* ...
                     (dataAtN-squeeze(mu(l,k,:))); % (mx1)^T(mx1) = 1x1
-                %sig = sig + 1/numEdges * log 
+                ngbh = find(data{d}.adj(n,:));
+                if numel(ngbh) > 5
+                    ngbh = ngbh(randperm(numel(ngbh))); % permute
+                    ngbh = ngbh(1:E); % pick first E nbghs
+                end
+                sig = sum(rho(n,k)*rho(ngbh, k));
             end
         end        
         beta = beta + xiRho;
     end
-    lambdas(d) = lambda;    
+    lams = lams + 1/lambda;    
   end
 
-  % M-step of alpha and normalize beta
+    
+  % M-step of alpha and normalize beta and all the otehrs
   alpha = newton_alpha(gammas);
-  beta = mnormalize(beta, 1);
+  mu = bsxfun(@rdivide, mu, beta);
+  del = del./(m.*beta);
+  sig = 1/E*log(sig/lams);
+  beta = mnormalize(beta, 1);  
   
   % converge?
   %  lik = trf_lik(data{d},beta,gammas);
