@@ -6,11 +6,21 @@ function b = converged(u,udash,threshhold)
 
 % threshold
 if (nargin < 3)
-  threshhold = 1.0e-3;
+    threshhold = 1.0e-3;
 end
 % main
 if (diff_vec(u, udash) < threshhold)
-  b = true;
+    b = true;
 else
-  b = false;
+    b = false;
+end
+
+end
+
+function p = diff_vec(u,v)
+% p = diff_vec(u,v)
+% Returns a difference ratio of v, w.r.t. u.
+% $Id: diff_vec.m,v 1.2 2004/11/12 12:45:01 dmochiha Exp $
+p = norm(u - v) / norm(u);
+
 end

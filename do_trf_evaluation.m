@@ -1,14 +1,17 @@
 function do_trf_evaluation(config_file)
 %%%%%%%%%%
 % do_trf_evaluation.m
-% Test and evaluate TRF model learnt with do_trf.m
+% using the TRF model learnt in do_trf.m, label each region with
+% most likely topic. i.e:
+%  argmax_{z_r^d} P(x_r^d|z_r^d)
+%
 %%%%%%%%%%
 
 %% Evaluate global configuration file
 eval(config_file);
 
 %%% Load data and parameters
-evalSet=load(evalData_fname,'allData','goodPairsL','goodPairsR','badPairsL','badPairsR','onlyGoodL','onlyGoodR','onlyGoodLabels','allSegs','allSegLabels');
+evalSet=load(evalData_fname,'allData','allSegs','allSegLabels');
 
 load(model_name,'alpha','sig','beta','mu','delta', 'Learn');
 

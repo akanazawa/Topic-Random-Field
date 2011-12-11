@@ -22,22 +22,26 @@ function [alpha,sig,beta,mu,delta] = trf(data, Learn)
 
 D = length(data);
 m = size(data{1}.feat2,2); %number of features
-k = Learn.Num_Topics;
-l = Learn.Num_Prototypes;
+K = Learn.Num_Topics;
+L = Learn.Num_Prototypes;
 
 % initialize parameters
-alpha = normalize(fliplr(sort(rand(1,k))));
-beta = ones(l,k)/l;
+alpha = normalize(fliplr(sort(rand(1,K))));
+beta = ones(L,K)/L;
 sig = 1;
-mu = ones(l,k,m);
-del = ones(l,k);
+mu = ones(L,K,m);
+del = ones(L,K);
 
-gammas = zeros(D, k);
-xis = zeros(l,k);
-rhos = zeros(D,k);
+gammas = zeros(D, K);
+% xis = zeros(L,K);
+% rhos = zeros(D,K);
 lambdas = zeros(D,1);
 lik = 0;
-pre_lik = lik;
+pre_ah = ah;
+pre_beta = beta;
+pre_mu = mu;
+pre_del = del;
+pre_sig = sig;
 
 tic;
 for j = 1:Learn.Max_Iterations
@@ -46,48 +50,51 @@ for j = 1:Learn.Max_Iterations
   %% vb-estep
   for d = 1:D
     [gamma,xi_n,rho,lambda] = vbem(data{d},beta,alpha,mu,del,sig,Learn);
-    keyboard
     gammas(d,:) = gamma;
-    Nd = length(data{d}.segLabels); % number of regions
-    tmp = zeros(l,k);
+    Nd = length(data{d}.segLabels); % number of regions    
     % iteratively do vb-mstep
     for n=1:Nd        
-        dd = data{d};
-        dataAtN =dd(n,:);
-        xiRho = xi(n,:)'*rho(n,:);
+        dfeat = data{d}.feat2; % Nd x m 
+        dataAtN =dfeat(n,:)'; % mx1
+        xiRho = xi_n(n,:)'*rho(n,:);% xi_n=nDxl, rho=nDxk: (1xl)'*(1xk)
         for l=1:L
             for k=1:K
-                mu(l,k,:) = mu(l,k,:) + dataAtN*xiRho(l,k);
-                del(l,k) = del(l,k) + xiRho(l,k)*(dataAtN-mu(l,k,:))'* ...
-                    (dataAtN-mu(l,k,:));
-                %                sig = sig + 1/numEdges * log 
+                mu(l,k,:) = squeeze(mu(l,k,:)) + dataAtN*xiRho(l,k);
+                del(l,k) = del(l,k) + xiRho(l,k)*(dataAtN-squeeze(mu(l,k,:)))'* ...
+                    (dataAtN-squeeze(mu(l,k,:))); % (mx1)^T(mx1) = 1x1
+                %sig = sig + 1/numEdges * log 
             end
         end        
-        beta = beta + xi(n,:)'*rho(n,:); % (1xl)' * (1xk)
+        beta = beta + xiRho;
     end
-    %    beta = beta + xi'*rho; %(1 x l)' * (1 x k) = l x k
     lambdas(d) = lambda;    
   end
 
   % M-step of alpha and normalize beta
   alpha = newton_alpha(gammas);
+  keyboard
   beta = mnormalize(beta, 1);
   
   % converge?
   %  lik = trf_lik(data{d},beta,gammas);
   % if the parameters stop changes: ah, sig, beta, mu, delta
 
-  fprintf(1,'likelihood = %g\t',lik);
-  if (j > 1) && converged(lik,plik,1.0e-4)
+  %  fprintf(1,'likelihood = %g\t',lik);
+  if (j > 1) && converged(ah,pre_ah,1.0e-4) && converged(beta,pre_beta,1.0e-4) && converged(mu,pre_mu,1.0e-4) && converged(del,pre_del,1.0e-4) && converged(sig,pre_sig,1.0e-4)
     if (j < 5)
-      fprintf(1,'\n');
-      [alpha,beta] = lda(d,k,emmax,demmax); % try again!
+      fprintf(1,'tooearly???\n');
+      keyboard
+      [alpha,sig,beta,mu,delta] = trf(allData,Learn); % try again!
       return;
     end
     fprintf(1,'\nconverged.\n');
     return;
   end
-  plik = lik;
+  pre_ah = ah;
+  pre_beta = beta;
+  pre_mu = mu;
+  pre_del = del;
+  pre_sig = sig;
   % ETA
   elapsed = toc;
   fprintf(1,'ETA:%s (%d sec/step)\r',rtime(elapsed * (Learn.Max_Iterations / j  - 1)),round(elapsed / j));
