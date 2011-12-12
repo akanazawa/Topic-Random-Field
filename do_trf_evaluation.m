@@ -53,10 +53,10 @@ colmap = [...
     0.5451    0.2706    0.0745;... % 7 SaddleBrown
     1.0000    0.6471         0;... % 8 Orange
          ];
-keyboard
+
 sfigure; 
-plot(pred_segLabels, 'r.-'); hold on;
-plot(allData{d}.segLabels, 'b.-');
+plot(pred_segLabels, 'r.'); hold on;
+plot(allData{d}.segLabels, 'b.');
 legend('prediction', 'truth');
 
 % show the first one for now:

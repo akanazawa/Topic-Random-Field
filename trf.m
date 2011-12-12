@@ -33,8 +33,17 @@ mu = ones(L,K,m);
 del = ones(L,K);
 
 gammas = zeros(D, K);
-% xis = zeros(L,K);
-% rhos = zeros(D,K);
+
+%Initialize variational param (annoying because this dataset has
+%different number of regions)
+xis = cell(D,1);
+rhos = cell(D,1);
+for d=1:D
+    Nd = length(data{d}.segLabels);
+    xis{d} = ones(Nd,L);
+    rhos{d} = ones(Nd,K);
+end
+
 lams = 0;
 lik = 0;
 pre_alpha = alpha;
@@ -46,17 +55,24 @@ pre_sig = sig;
 tic;
 for j = 1:Learn.Max_Iterations
   fprintf(1,'iteration %d/%d..\n',j,Learn.Max_Iterations);
-
+  % reset
+  beta = zeros(L,K);
+  sig = 0;
+  mu = zeros(L,K,m);
+  del = zeros(L,K);
   %% vb-estep
   for d = 1:D
-    [gamma,xi_n,rho,lambda] = vbem(data{d},beta,alpha,mu,del,sig,Learn);
+    [gamma,xi,rho,lambda] = vbem(data{d},pre_beta,pre_alpha,pre_mu, ...
+                                 pre_del,pre_sig,xis{d}, rhos{d},Learn);
+    xis{d} = xi;
+    rhos{d} = rho;
     gammas(d,:) = gamma;
     Nd = length(data{d}.segLabels); % number of regions    
     % iteratively do vb-mstep
     for n=1:Nd        
         dfeat = data{d}.feat2; % Nd x m 
         dataAtN =dfeat(n,:)'; % mx1
-        xiRho = xi_n(n,:)'*rho(n,:);% xi_n=nDxl, rho=nDxk: (1xl)'*(1xk)
+        xiRho = xi(n,:)'*rho(n,:);% xi=nDxl, rho=nDxk: (1xl)'*(1xk)
         for l=1:L
             for k=1:K
                 mu(l,k,:) = squeeze(mu(l,k,:)) + dataAtN*xiRho(l,k);
@@ -67,7 +83,7 @@ for j = 1:Learn.Max_Iterations
                     ngbh = ngbh(randperm(numel(ngbh))); % permute
                     ngbh = ngbh(1:E); % pick first E nbghs
                 end
-                sig = sum(rho(n,k)*rho(ngbh, k));
+                sig = sig + sum(rho(n,k)*rho(ngbh, k));
             end
         end        
         beta = beta + xiRho;
@@ -75,20 +91,22 @@ for j = 1:Learn.Max_Iterations
     lams = lams + 1/lambda;    
   end
 
-    
   % M-step of alpha and normalize beta and all the otehrs
-  alpha = newton_alpha(gammas);
-  mu = bsxfun(@rdivide, mu, beta);
+  alpha = newton_alpha(gammas)
   del = del./(m.*beta);
-  sig = 1/E*log(sig/lams);
-  beta = mnormalize(beta, 1);  
-  
+  sig = 1/E*log(sig/lams)
+  origbeta = beta;
+  beta = beta./(repmat(sum(beta,2),1,k))
+  if (numel(find(isnan(beta))) > 0)
+      fprintf(' in trf beta is nan\n');
+      keyboard
+  end
   % converge?
   %  lik = trf_lik(data{d},beta,gammas);
   % if the parameters stop changes: ah, sig, beta, mu, delta
 
   %  fprintf(1,'likelihood = %g\t',lik);
-  if (j > 1) && converged(alpha,pre_alpha,1.0e-4) && converged(beta,pre_beta,1.0e-4) && converged(mu,pre_mu,1.0e-4) && converged(del,pre_del,1.0e-4) && converged(sig,pre_sig,1.0e-4)
+  if (j > 1) && converged(beta,pre_beta,1.0e-4) && converged(mu,pre_mu,1.0e-4) && converged(del,pre_del,1.0e-4) && converged(sig,pre_sig,1.0e-4)
     if (j < 5)
       fprintf(1,'tooearly???\n');
       keyboard

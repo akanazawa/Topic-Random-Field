@@ -7,6 +7,7 @@ function x = mnormalize(m,d)
 if nargin < 2
   d = 1;
 end
+
 v = sum(m,d);
 if d == 1
   x = m * diag(1 ./ v);
