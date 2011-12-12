@@ -58,10 +58,10 @@ model_name = [DATA_DIR, 'TRF_model.mat'];
 Learn.Num_Neighbors = 4;
 
 % How many topics in TRF
-Learn.Num_Topics = 3;
+Learn.Num_Topics = 8;
 
 % How many prototypes in a topic
-Learn.Num_Prototypes = 2;
+Learn.Num_Prototypes = 3;
 
 % Max number of VB-EM iterations
 Learn.Max_Iterations  = 40;

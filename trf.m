@@ -29,8 +29,8 @@ E = Learn.Num_Neighbors;
 alpha = normalize(fliplr(sort(rand(1,K))));
 beta = ones(L,K)/L;
 sig = 1;
-mu = ones(L,K,m);
-del = ones(L,K);
+mu = ones(L,K,m)/m;
+del = ones(L,K)/L;
 
 gammas = zeros(D, K);
 
@@ -86,6 +86,7 @@ for j = 1:Learn.Max_Iterations
                 sig = sig + sum(rho(n,k)*rho(ngbh, k));
             end
         end        
+        keyboard
         beta = beta + xiRho;
     end
     lams = lams + 1/lambda;    

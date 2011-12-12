@@ -11,8 +11,8 @@ m = size(d.feat2,2); %number of features
 neigh = d.adj; % a Nd x Nd binary matrix indicating the neighboors
                % for each region
 
-xi = ones(Nd,L);% xi = repmat((1:l)/l,Nd,1); % Nd by L
-rho = ones(Nd, K); % Nd by K
+xi = ones(Nd,L)/L;% xi = repmat((1:l)/l,Nd,1); % Nd by L
+rho = ones(Nd, K)/K; % Nd by K
 
 %% AJ: why not below but this: E = sum(min([sum(neigh,1) ; repmat(F,1,Nd)]))/2;
 E = 4; 
@@ -51,8 +51,8 @@ end % end n
 %% normalize rho and xi
 origxi = xi;
 xi = xi./(repmat(sum(xi,2),1,l));        
-if (numel(find(isinf(xi))) > 0)
-    fprintf(' in vbem xi is inf\n');
+if (numel(find(isnan(xi))) > 0 || numel(find(isinf(xi))) > 0)
+    fprintf(' in vbem xi is nan or inf\n');
     keyboard
 end
 origrho = rho;
