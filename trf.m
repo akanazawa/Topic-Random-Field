@@ -34,16 +34,6 @@ del = ones(L,K)/L;
 
 gammas = zeros(D, K);
 
-%Initialize variational param (annoying because this dataset has
-%different number of regions)
-xis = cell(D,1);
-rhos = cell(D,1);
-for d=1:D
-    Nd = length(data{d}.segLabels);
-    xis{d} = ones(Nd,L);
-    rhos{d} = ones(Nd,K);
-end
-
 lams = 0;
 lik = 0;
 pre_alpha = alpha;
@@ -60,17 +50,15 @@ for j = 1:Learn.Max_Iterations
   sig = 0;
   mu = zeros(L,K,m);
   del = zeros(L,K);
-  %% vb-estep
+  %% E vb-estep
   for d = 1:D
     [gamma,xi,rho,lambda] = vbem(data{d},pre_beta,pre_alpha,pre_mu, ...
-                                 pre_del,pre_sig,xis{d}, rhos{d},Learn);
-    xis{d} = xi;
-    rhos{d} = rho;
+                                 pre_del,pre_sig,Learn);
     gammas(d,:) = gamma;
     Nd = length(data{d}.segLabels); % number of regions    
-    % iteratively do vb-mstep
+    dfeat = data{d}.feat2; % Nd x m 
+    % iteratively do M-step as we go
     for n=1:Nd        
-        dfeat = data{d}.feat2; % Nd x m 
         dataAtN =dfeat(n,:)'; % mx1
         xiRho = xi(n,:)'*rho(n,:);% xi=nDxl, rho=nDxk: (1xl)'*(1xk)
         for l=1:L
@@ -86,10 +74,11 @@ for j = 1:Learn.Max_Iterations
                 sig = sig + sum(rho(n,k)*rho(ngbh, k));
             end
         end        
-        keyboard
         beta = beta + xiRho;
     end
     lams = lams + 1/lambda;    
+    lik = lik + trf_lik(dfeat, pre_alpha, pre_beta, pre_mu, pre_del, ...
+                        pre_sig, gamma, xi, rho, lambda);
   end
 
   % M-step of alpha and normalize beta and all the otehrs
@@ -103,29 +92,45 @@ for j = 1:Learn.Max_Iterations
       keyboard
   end
   % converge?
-  %  lik = trf_lik(data{d},beta,gammas);
-  % if the parameters stop changes: ah, sig, beta, mu, delta
-
-  %  fprintf(1,'likelihood = %g\t',lik);
-  if (j > 1) && converged(beta,pre_beta,1.0e-4) && converged(mu,pre_mu,1.0e-4) && converged(del,pre_del,1.0e-4) && converged(sig,pre_sig,1.0e-4)
-    if (j < 5)
-      fprintf(1,'tooearly???\n');
-      keyboard
-      [alpha,sig,beta,mu,delta] = trf(allData,Learn); % try again!
-      return;
-    end
-    fprintf(1,'\nconverged.\n');
+  fprintf(1,'likelihood = %g\t',lik);
+  % if (j > 1) && converged(beta,pre_beta,1.0e-4) &&
+  % converged(mu,pre_mu,1.0e-4) && converged(del,pre_del,1.0e-4) &&
+  % converged(sig,pre_sig,1.0e-4)
+  if (j > 1) && converged(lik, pre_lik);
+    fprintf(1,'\nconverged at iteration %d.\n', j);
     return;
   end
-  pre_alpha = alpha;
-  pre_beta = beta;
-  pre_mu = mu;
-  pre_del = del;
-  pre_sig = sig;
+  % pre_alpha = alpha;
+  % pre_beta = beta;
+  % pre_mu = mu;
+  % pre_del = del;
+  % pre_sig = sig;
+  pre_lik = lik;
+  lik = 0;
   % ETA
   elapsed = toc;
   fprintf(1,'ETA:%s (%d sec/step)\r',rtime(elapsed * (Learn.Max_Iterations / j  - 1)),round(elapsed / j));
 end
 fprintf(1,'\n');
 
+end
 
+% alpha = normalize(fliplr(sort(rand(1,K))));
+% beta = ones(L,K)/L;
+% sig = 1;
+% mu = ones(L,K,m)/m;
+% del = ones(L,K)/L;
+% gamma here is kx1
+% xi = ones(Nd,L)/L;% xi = repmat((1:l)/l,Nd,1); % Nd by L
+% rho = ones(Nd, K)/K; % Nd by K
+
+
+function [likelihood] = trf_lik(data, alpha, beta, mu, del, sig, ... 
+                 gam, xi, rho, lambda)
+  digamma = psi(gam);
+  digamma_sum = psi(sum(gam));
+  likelihood = gammaln(sum(alpha)) - sum(gammaln(alpha)) ...
+      + sum((alpha-1).*(digamma - digamma_sum)) ...
+            - gammaln(sum(gam)) + sum(gammaln(gam)); % only half
+                                                     % way done!
+end

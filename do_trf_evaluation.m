@@ -23,25 +23,34 @@ L = Learn.Num_Prototypes;
 % for all data, label all regions, save in allResults
 for d = 1:length(allData)
     dfeat = allData{d}.feat2;
-    Nd = length(allData{d}.segLabels); % number of regions
-    pred_segLabels = zeros(Nd,1);                             
-    for n=1:Nd
-        dn = dfeat(n,:)'; % (m x 1)
-        ks = zeros(K,1);
-        for k = 1:K
-            score = 1;
-            for l=1:L
-                px_udel = exp(-(dn-squeeze(mu(l,k, :)))'*...
-                              (dn-squeeze(mu(l,k, :)))/(2*delta(l,k).^2) );        
-                score = beta(l,k)*px_udel;                
-            end
-            ks(k) = score;
-        end
-        ks;
-        [bestScore, z] = max(ks);
-        pred_segLabels(n) = z;
-    end    
-end
+    Nd = length(allData{d}.segLabels); % number of regions    
+    [gamma, xi, rho, lambda] = vbem(allData{d}, beta, alpha, mu, delta, ...
+                                    sig, Learn); 
+    % rho is Nd x K corresponding to the topic distribution
+    [bestScore, zs] = max(rho, [], 2);
+    pred_segLabels = zs;
+end    
+
+    % dfeat = allData{d}.feat2;
+    % Nd = length(allData{d}.segLabels); % number of regions
+    % pred_segLabels = zeros(Nd,1);                             
+    % for n=1:Nd
+    %     dn = dfeat(n,:)'; % (m x 1)
+    %     ks = zeros(K,1);
+    %     for k = 1:K
+    %         score = 1;
+    %         for l=1:L
+    %             px_udel = exp(-(dn-squeeze(mu(l,k, :)))'*...
+    %                           (dn-squeeze(mu(l,k, :)))/(2*delta(l,k).^2) );        
+    %             score = beta(l,k)*px_udel;                
+    %         end
+    %         ks(k) = score;
+    %     end
+    %     ks;
+    %     [bestScore, z] = max(ks);
+    %     pred_segLabels(n) = z;
+    % end    
+
 
 colmap = [...
     0.8000    0.8000    0.8000;... % 1 grey
