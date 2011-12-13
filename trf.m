@@ -77,9 +77,9 @@ for j = 1:Learn.Max_Iterations
         beta = beta + xiRho;
     end
     lams = lams + 1/lambda;    
-    lik = lik + trf_lik(dfeat, pre_alpha, pre_beta, pre_mu, pre_del, ...
+    lik = lik + trf_lik(data{d}, pre_alpha, pre_beta, pre_mu, pre_del, ...
                         pre_sig, gamma, xi, rho, lambda, Learn);
-    keyboard
+
   end
 
   % M-step of alpha and normalize beta and all the otehrs
@@ -98,7 +98,7 @@ for j = 1:Learn.Max_Iterations
   % if (j > 1) && converged(beta,pre_beta,1.0e-4) &&
   % converged(mu,pre_mu,1.0e-4) && converged(del,pre_del,1.0e-4) &&
   % converged(sig,pre_sig,1.0e-4)
-  if (j > 1) && converged(lik, pre_lik);
+  if (j > 1) && converged(lik, pre_lik, 1.0e-5);
     fprintf(1,'\nconverged at iteration %d.\n', j);
     return;
   end
@@ -139,6 +139,8 @@ function [likelihood] = trf_lik(data, alpha, beta, mu, del, sig, ...
   m = size(data,2); %number of features
   K = Learn.Num_Topics;
   L = Learn.Num_Prototypes;
+  Nd = length(data.segLabels); % number of regions    
+  d = data.feat2; % Nd x m   
   
   digamma = psi(gam);
   digamma_sum = psi(sum(gam));
@@ -147,12 +149,14 @@ function [likelihood] = trf_lik(data, alpha, beta, mu, del, sig, ...
   line2 = (digamma-digamma_sum)*sum(rho)'; %need to add neighbor
                                           %terms
   xiRho = xi'*rho;
-  line3 = sum(sum(xiRho.*log(beta)));
+  line3 = sum(sum(xiRho.*log(beta))); % checked. same as doing in 3 loop 
   line4 = 0;
-  for l=1:L
-      for k=1:K
-          xmu = bsxfun(@minus,data',squeeze(mu(l,k,:)));
-          line4 = line4 + xiRho(l,k)*(-m/2*log(2*pi*del(l,k)) - xmu'*xmu/(2*del(l,k)));
+  for n=1:Nd
+      for l=1:L
+          for k=1:K
+              xmu = d(n,:)' - squeeze(mu(l,k,:));
+              line4 = line4 + xi(n,l)*rho(n,k)*(-m/2*log(2*pi*del(l,k)) - xmu'*xmu/(2*del(l,k)));
+          end
       end
   end
   line5 = -gammaln(sum(gam)) + sum(gammaln(gam)) ...
