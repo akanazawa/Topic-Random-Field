@@ -30,7 +30,7 @@ alpha = normalize(fliplr(sort(rand(1,K))));
 beta = ones(L,K)/L;
 sig = 1;
 mu = ones(L,K,m)/m;
-del = ones(L,K)/L;
+del = ones(L,K)/(2*L);
 
 gammas = zeros(D, K);
 
@@ -78,12 +78,14 @@ for j = 1:Learn.Max_Iterations
     end
     lams = lams + 1/lambda;    
     lik = lik + trf_lik(dfeat, pre_alpha, pre_beta, pre_mu, pre_del, ...
-                        pre_sig, gamma, xi, rho, lambda);
+                        pre_sig, gamma, xi, rho, lambda, Learn);
+    keyboard
   end
 
   % M-step of alpha and normalize beta and all the otehrs
   alpha = newton_alpha(gammas)
-  del = del./(m.*beta);
+  del = del./(m.*beta);  
+  mu = bsxfun(@rdivide, mu, beta);
   sig = 1/E*log(sig/lams)
   origbeta = beta;
   beta = beta./(repmat(sum(beta,2),1,k))
@@ -124,13 +126,37 @@ end
 % xi = ones(Nd,L)/L;% xi = repmat((1:l)/l,Nd,1); % Nd by L
 % rho = ones(Nd, K)/K; % Nd by K
 
-
+% if LDA:
+% dig = digamma(ldagamma);
+% digsum = digamma(sum(ldagamma));
+% likelihood=gammaln(sum(a))-sum(gammaln(a)) + sum((a-1).*(dig-digsum)) ...
+%     - gammaln(sum(ldagamma))+sum(gammaln(ldagamma)) ...
+% 	- sum((ldagamma-1).*(dig-digsum)) - sum(sum(ldaphi.*log(ldaphi))) ...
+% 	+ (dig-digsum)'*sum(ldaphi,2) + sum(sum(ldaphi.*log(b(:,d))));
+% di is Ndxm here
 function [likelihood] = trf_lik(data, alpha, beta, mu, del, sig, ... 
-                 gam, xi, rho, lambda)
+                 gam, xi, rho, lambda, Learn)
+  m = size(data,2); %number of features
+  K = Learn.Num_Topics;
+  L = Learn.Num_Prototypes;
+  
   digamma = psi(gam);
   digamma_sum = psi(sum(gam));
-  likelihood = gammaln(sum(alpha)) - sum(gammaln(alpha)) ...
-      + sum((alpha-1).*(digamma - digamma_sum)) ...
-            - gammaln(sum(gam)) + sum(gammaln(gam)); % only half
-                                                     % way done!
+  line1 = gammaln(sum(alpha)) - sum(gammaln(alpha)) ...
+      + sum((alpha-1).*(digamma - digamma_sum));
+  line2 = (digamma-digamma_sum)*sum(rho)'; %need to add neighbor
+                                          %terms
+  xiRho = xi'*rho;
+  line3 = sum(sum(xiRho.*log(beta)));
+  line4 = 0;
+  for l=1:L
+      for k=1:K
+          xmu = bsxfun(@minus,data',squeeze(mu(l,k,:)));
+          line4 = line4 + xiRho(l,k)*(-m/2*log(2*pi*del(l,k)) - xmu'*xmu/(2*del(l,k)));
+      end
+  end
+  line5 = -gammaln(sum(gam)) + sum(gammaln(gam)) ...
+           - sum( (gam-1).*(digamma - digamma_sum));
+  line6 = - sum(sum(xi.*log(xi))) - sum(sum(rho.*log(rho)));
+  likelihood =  line1 + line2 + line3 + line4 + line5 + line6; 
 end
