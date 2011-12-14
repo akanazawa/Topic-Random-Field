@@ -24,6 +24,7 @@ pre_rho = rho;
 
 inside = zeros(L,K);
 lhs = zeros(L,K);
+
 E = sum(min([sum(neigh,1) ; repmat(F,1,Nd)]))/2;
 
 dfeat = d.feat2; % Nd x m 
@@ -37,34 +38,28 @@ for j=1:Learn.V_Max_Iterations
         x_n =dfeat(n,:)'; % mx1    
         for l = 1:L
             for k = 1:K
-                %lhs(l,k) = beta(l,k)*((2*pi*delta(l,k))^(-m/2));            
-                lhs(l,k) =log(beta(l,k))-(m/2)*log(2*pi*delta(l,k));
-                inside(l,k) = (x_n-squeeze(mu(l,k,:)))'*(x_n- ...
-                                                         squeeze(mu(l,k,:)))/(2*delta(l,k));
-                % xi(n,l) = xi(n,l)*(lhs(l,k)*exp(-inside(l,k)))^pre_rho(n,k);
-                xi(n,l) = xi(n,l) + (lhs(l,k) + -inside(l,k))*pre_rho(n,k);
+                lhs(l,k) = beta(l,k)*((2*pi*delta(l,k))^(-m/2));            
+                % in log  lhs(l,k) =log(beta(l,k))-(m/2)*log(2*pi*delta(l,k));
+                inside(l,k) = (x_n-squeeze(mu(l,k,:)))'*(x_n-squeeze(mu(l,k,:)))/(2*delta(l,k));
+                xi(n,l) = xi(n,l)*(lhs(l,k)*exp(-inside(l,k)))^pre_rho(n,k);
+                % in log: xi(n,l) = xi(n,l) + (lhs(l,k) + -inside(l,k))*exp(pre_rho(n,k));
             end % end k
         end % end l
         for k = 1:K
             % pick random E neighbors
-            ngbh = find(d.adj(n,:));
-            if numel(ngbh) > 5
-                %  ngbh = ngbh(randperm(numel(ngbh))); % permute
-                ngbh = ngbh(1:F); % pick first E nbghs
-            end
-            % rho(n,k) = exp(psi(gamma(k)) - psi(sum(gamma)) + ...
-            %                sum(pre_rho(ngbh,k))*sig);
-            rho(n,k) = psi(gamma(k)) - psi(sum(gamma)) + sum(pre_rho(ngbh,k))*sig;
+            ngbh = getNeighbors(d, n, F);
+            rho(n,k) = exp(psi(gamma(k)) - psi(sum(gamma)) + sum(pre_rho(ngbh,k))*sig);
+            %in log            rho(n,k) = psi(gamma(k)) - psi(sum(gamma)) + sum(pre_rho(ngbh,k))*sig;
             for l = 1:L
-                %              rho(n,k) = rho(n,k)*(lhs(l,k)*exp(-inside(l,k)))^pre_xi(n,l);
-                rho(n,k) = rho(n,k)+ (lhs(l,k)-inside(l,k))*pre_xi(n,l);
+                rho(n,k) = rho(n,k)*(lhs(l,k)*exp(-inside(l,k)))^pre_xi(n,l);
+                %in log rho(n,k) = rho(n,k)+ (lhs(l,k)-inside(l,k))*exp(pre_xi(n,l));
             end % end l
         end % end k                
     end % end n        
     %% normalize rho and xi
-keyboard;
+    keyboard;
     origxi = xi;
-    xi = exp(xi); % if above done in log
+    % xi = exp(xi); % if above done in log
     xi = xi./(repmat(sum(xi,2),1,l));        
     if (numel(find(isnan(xi))) > 0 || numel(find(isinf(xi))) > 0)
         fprintf(' in vbem xi is nan or inf\n');

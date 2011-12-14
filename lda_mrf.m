@@ -1,81 +1,80 @@
-function [alpha,sig,beta,mu,del] = lda_mrf(data, Learn)
+function [alpha, beta, sig] = lda_mrf(data, Learn)
 %%%%%%%%%%
 % lda_mrf.m
 % Learn parameters for LDA+MRF, no gaussian noise channel
 % INPUT:
-%    - data: cell array of data in format:
+%    - data: cell array of data with structure:
 %          data{1}:
 %                img: [240x320x3 uint8]
 %             labels: [240x320 double]
+%                 vq: [Nd x L]
 %              segs2: [240x320 double]
-%              feat2: [115x119 double]
-%          segLabels: [115x1 double]
-%                adj: [115x115 logical]
+%              feat2: [Nd x 119 double]
+%          segLabels: [Nd x 1 double]
+%                adj: [Nd x Nd logical]
 %
 %    - Learn: parameters specificed in config.m
 %
-% based on LDA code by Daichi Mochihashi.
+% based on LDA code by Daichi Mochihashi (http://chasen.org/~daiti-m/dist/lda/) 
+% and Jonathan Huang (http://www.stanford.edu/~jhuang11/#code)
 %
-% Modified by Angjoo Kanazawa/Austin Myers/Abhishek Sharma
-%
+% Angjoo Kanazawa 12/13/2011
 
-
+%% Learning Settings
 D = length(data);
-m = size(data{1}.feat2,2); %number of features
 K = Learn.Num_Topics;
-L = Learn.Num_Prototypes;
+L = size(data{1}.vq, 2); % length of code book
 E = Learn.Num_Neighbors;
-% initialize parameters
+
+%% initialize parameters
 alpha = normalize(fliplr(sort(rand(1,K))));
-beta = ones(L,K)/L;
+beta = rand(K,L) + .01;
+beta = beta ./ repmat(sum(beta, 2), 1, L); % make it probability
 sig = 1;
 
-
-gammas = zeros(D, K);
-
-lams = 0;
+%% likelihood for convergence
 lik = 0;
-pre_alpha = alpha;
-pre_beta = beta;
-
-pre_sig = sig;
 
 tic;
 for j = 1:Learn.Max_Iterations
   fprintf(1,'iteration %d/%d..\n',j,Learn.Max_Iterations);
-  % reset
-  beta = zeros(L,K);
-  sig = 0;
-
-  %% E vb-estep
+  % initialize to store computed variational param for each image
+  gammas = zeros(D, K);      
+  rhos = cell(D);
+  lams = zeros(D,1);
+  lik = 0;
+  %%%%% E step find the best variational parameters %%%%%
   for d = 1:D
-    [gamma,rho,lambda] = vbem(data{d},pre_beta,pre_alpha,pre_sig,Learn);
+    [gamma,rho,lambda] = vbem(data{d},beta,alpha,sig,Learn);
     gammas(d,:) = gamma;
-    Nd = length(data{d}.segLabels); % number of regions    
-    dfeat = data{d}.feat2; % Nd x m 
-    % iteratively do M-step as we go
-    for n=1:Nd        
-        dataAtN =dfeat(n,:)'; % mx1
-        for l=1:L
-            for k=1:K
-                ngbh = find(data{d}.adj(n,:));
-                if numel(ngbh) > 5
-                    ngbh = ngbh(randperm(numel(ngbh))); % permute
-                    ngbh = ngbh(1:E); % pick first E nbghs
-                end
-                sig = sig + sum(rho(n,k)*rho(ngbh, k));
-            end
-        end        
-        beta = beta + xiRho;
-    end
-    lams = lams + 1/lambda;    
-    lik = lik + trf_lik(data{d}, pre_alpha, pre_beta, pre_sig, gamma, rho, lambda, Learn);
-
+    rhos{d} = rho; % Ndxk 
+    lams(d) = lambda;
+    lik = lik + getLikelihood(data{d}, alpha, beta, sig, gamma, rho, lambda, Learn);
   end
 
-  % M-step of alpha and normalize beta and all the otehrs
+  %%%%% M-step of alpha and normalize beta and all the otehrs %%%%%
+  % being very pedantic, exact to the equation
+  totalEdges = 0;
+  for d=1:D
+      Nd = length(data{d}.segLabels); % number of regions    
+      dfeat = data{d}.vq; % Nd x L      
+      for n=1:Nd        
+          d =dfeat(n,:)'; % Lx1
+          rho = rhos{d};
+          ngbh = getNeighbors(data{d}, n, E);
+          totalEdges = totalEdges + numel(ngbh);
+          keyboard
+          for k=1:K
+              for l=1:L
+                  sig = sig + sum(rho(n,k)*rho(ngbh, k));
+                  beta(k,l) = beta(k,l) + rhos(n, k)*d(l); 
+              end
+          end        
+      end
+  end
   alpha = newton_alpha(gammas)
-  del = del./(m.*beta);  
+  sig = 1/totalEdges*log(sig/sum(1/lams));
+  % normalize beta 
   origbeta = beta;
   beta = beta./(repmat(sum(beta,2),1,k))
   if (numel(find(isnan(beta))) > 0)
@@ -84,21 +83,16 @@ for j = 1:Learn.Max_Iterations
   end
   % converge?
   fprintf(1,'likelihood = %g\t',lik);
-  % if (j > 1) && converged(beta,pre_beta,1.0e-4) &&
-  % converged(mu,pre_mu,1.0e-4) && converged(del,pre_del,1.0e-4) &&
-  % converged(sig,pre_sig,1.0e-4)
   if (j > 1) && converged(lik, pre_lik, 1.0e-5);
     fprintf(1,'\nconverged at iteration %d.\n', j);
     return;
   end
   pre_lik = lik;
-  lik = 0;
   % ETA
   elapsed = toc;
   fprintf(1,'ETA:%s (%d sec/step)\r',rtime(elapsed * (Learn.Max_Iterations / j  - 1)),round(elapsed / j));
 end
 fprintf(1,'\n');
-
 end
 
 % alpha = normalize(fliplr(sort(rand(1,K))));
@@ -135,3 +129,4 @@ function [likelihood] = trf_lik(data, alpha, beta, mu, del, sig, ...
   line6 = - sum(sum(rho.*log(rho)));
   likelihood =  line1 + line2 + line3 + line5 + line6; 
 end
+

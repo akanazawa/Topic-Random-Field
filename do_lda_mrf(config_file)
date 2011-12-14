@@ -1,7 +1,8 @@
-function [alpha,beta] = do_trf(config_file)
+function [alpha,beta] = do_lda_mrf(config_file)(config_file)(config_file)
 %%%%%%%%%%
-% do_trf.m
-% wrapper of Topic Random Model based on LDA, the standard model (no gibbs sampling).
+% do_lda_mrf.m
+% wrapper of LDA+MRF, on oversegmented regions, MRF as a prior on
+% topic distribution.
 %
 %% the data is in format:
 % allData{1}:
