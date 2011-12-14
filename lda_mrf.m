@@ -29,8 +29,8 @@ E = Learn.Num_Neighbors;
 %% initialize parameters
 alpha = normalize(fliplr(sort(rand(1,K))));
 beta = rand(K,L) + .01;
-beta = beta ./ repmat(sum(beta, 2), 1, L); % make it probability
-sig = 1;
+beta = beta ./ repmat(sum(beta, 2), 1, L); % make it a probability
+sig = rand(1,1);
 
 %% likelihood for convergence
 lik = 0;
@@ -51,7 +51,7 @@ for j = 1:Learn.Max_Iterations
     lams(d) = lambda;
     lik = lik + lda_mrf_lik(data{d}, alpha, beta, sig, gamma, rho, lambda);
   end
-  keyboard
+
   fprintf('likelihood = %g\t',lik);
 
   %%%%% M-step of alpha and normalize beta and all the otehrs %%%%%

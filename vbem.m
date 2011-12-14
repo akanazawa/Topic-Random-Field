@@ -31,10 +31,10 @@ tau = 1e-2;
 pre_rho = rho;
 
 d_vq = d.vq; % Nd x 1˘
-fprintf('.');
+
 for j=1:Learn.V_Max_Iterations
     %    fprintf(1,'vb em itr %d/%d..',j,Learn.V_Max_Iterations);
-
+    fprintf('.');
     for n = 1:Nd
         ngbh = getNeighbors(d, n, E);
         rho(n,:) = beta(:, d_vq(n))'.*exp(psi(gamma) - psi(sum(gamma)) + sum(pre_rho(ngbh,:)*sig));
@@ -46,12 +46,11 @@ for j=1:Learn.V_Max_Iterations
     end
     gamma = alpha + sum(rho,1);
 
-    if (j>1) && converged(rho, pre_rho, tau) && ...
-            converged(gamma, pre_gamma, tau)
+    if (j>1) && converged(rho, pre_rho, tau) && converged(gamma, pre_gamma, tau)
         break;
     end
-    keyboard
     pre_rho = rho;
+
     pre_gamma = gamma;
 end
-%fprintf('\n');
+fprintf('|');
