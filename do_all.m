@@ -31,6 +31,6 @@ do_lda_mrf(config);
 
     
 % test model
-do_trf_evaluation(config);
-    
+%do_trf_evaluation(config);
+do_lda_mrf_evaluation(config);
     
