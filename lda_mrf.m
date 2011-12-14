@@ -1,7 +1,7 @@
-function [alpha,sig,beta,mu,del] = trf(data, Learn)
+function [alpha,sig,beta,mu,del] = lda_mrf(data, Learn)
 %%%%%%%%%%
-% trf.m
-% Learn parameters for TRF and save
+% lda_mrf.m
+% Learn parameters for LDA+MRF, no gaussian noise channel
 % INPUT:
 %    - data: cell array of data in format:
 %          data{1}:
@@ -29,8 +29,7 @@ E = Learn.Num_Neighbors;
 alpha = normalize(fliplr(sort(rand(1,K))));
 beta = ones(L,K)/L;
 sig = 1;
-mu = ones(L,K,m)/m;
-del = ones(L,K)/(L);
+
 
 gammas = zeros(D, K);
 
@@ -38,8 +37,7 @@ lams = 0;
 lik = 0;
 pre_alpha = alpha;
 pre_beta = beta;
-pre_mu = mu;
-pre_del = del;
+
 pre_sig = sig;
 
 tic;
@@ -48,24 +46,18 @@ for j = 1:Learn.Max_Iterations
   % reset
   beta = zeros(L,K);
   sig = 0;
-  mu = zeros(L,K,m);
-  del = zeros(L,K);
+
   %% E vb-estep
   for d = 1:D
-    [gamma,xi,rho,lambda] = vbem_trf(data{d},pre_beta,pre_alpha,pre_mu, ...
-                                 pre_del,pre_sig,Learn);
+    [gamma,rho,lambda] = vbem(data{d},pre_beta,pre_alpha,pre_sig,Learn);
     gammas(d,:) = gamma;
     Nd = length(data{d}.segLabels); % number of regions    
     dfeat = data{d}.feat2; % Nd x m 
     % iteratively do M-step as we go
     for n=1:Nd        
         dataAtN =dfeat(n,:)'; % mx1
-        xiRho = xi(n,:)'*rho(n,:);% xi=nDxl, rho=nDxk: (1xl)'*(1xk)
         for l=1:L
             for k=1:K
-                mu(l,k,:) = squeeze(mu(l,k,:)) + dataAtN*xiRho(l,k);
-                del(l,k) = del(l,k) + xiRho(l,k)*(dataAtN-squeeze(mu(l,k,:)))'* ...
-                    (dataAtN-squeeze(mu(l,k,:))); % (mx1)^T(mx1) = 1x1
                 ngbh = find(data{d}.adj(n,:));
                 if numel(ngbh) > 5
                     ngbh = ngbh(randperm(numel(ngbh))); % permute
@@ -77,18 +69,13 @@ for j = 1:Learn.Max_Iterations
         beta = beta + xiRho;
     end
     lams = lams + 1/lambda;    
-    mean(xi)
-    mean(rho)
-    lik = lik + trf_lik(data{d}, pre_alpha, pre_beta, pre_mu, pre_del, ...
-                        pre_sig, gamma, xi, rho, lambda, Learn);
+    lik = lik + trf_lik(data{d}, pre_alpha, pre_beta, pre_sig, gamma, rho, lambda, Learn);
 
   end
 
   % M-step of alpha and normalize beta and all the otehrs
   alpha = newton_alpha(gammas)
   del = del./(m.*beta);  
-  mu = bsxfun(@rdivide, mu, beta);
-  sig = 1/E*log(sig/lams)
   origbeta = beta;
   beta = beta./(repmat(sum(beta,2),1,k))
   if (numel(find(isnan(beta))) > 0)
@@ -104,11 +91,6 @@ for j = 1:Learn.Max_Iterations
     fprintf(1,'\nconverged at iteration %d.\n', j);
     return;
   end
-  % pre_alpha = alpha;
-  % pre_beta = beta;
-  % pre_mu = mu;
-  % pre_del = del;
-  % pre_sig = sig;
   pre_lik = lik;
   lik = 0;
   % ETA
@@ -122,10 +104,7 @@ end
 % alpha = normalize(fliplr(sort(rand(1,K))));
 % beta = ones(L,K)/L;
 % sig = 1;
-% mu = ones(L,K,m)/m;
-% del = ones(L,K)/L;
 % gamma here is kx1
-% xi = ones(Nd,L)/L;% xi = repmat((1:l)/l,Nd,1); % Nd by L
 % rho = ones(Nd, K)/K; % Nd by K
 
 % if LDA:
@@ -150,19 +129,9 @@ function [likelihood] = trf_lik(data, alpha, beta, mu, del, sig, ...
       + sum((alpha-1).*(digamma - digamma_sum));
   line2 = (digamma-digamma_sum)*sum(rho)'; %need to add neighbor
                                           %terms
-  xiRho = xi'*rho;
-  line3 = sum(sum(xiRho.*log(beta))); % checked. same as doing in 3 loop 
-  line4 = 0;
-  for n=1:Nd
-      for l=1:L
-          for k=1:K
-              xmu = d(n,:)' - squeeze(mu(l,k,:));
-              line4 = line4 + xi(n,l)*rho(n,k)*(-m/2*log(2*pi*del(l,k)) - xmu'*xmu/(2*del(l,k)));
-          end
-      end
-  end
+  line3 = rho.*log(beta); % need to take the word count
   line5 = -gammaln(sum(gam)) + sum(gammaln(gam)) ...
            - sum( (gam-1).*(digamma - digamma_sum));
-  line6 = - sum(sum(xi.*log(xi))) - sum(sum(rho.*log(rho)));
-  likelihood =  line1 + line2 + line3 + line4 + line5 + line6; 
+  line6 = - sum(sum(rho.*log(rho)));
+  likelihood =  line1 + line2 + line3 + line5 + line6; 
 end
