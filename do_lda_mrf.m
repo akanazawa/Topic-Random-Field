@@ -12,13 +12,14 @@ function [alpha,beta] = do_lda_mrf(config_file)
 eval(config_file);
 
 %% load data computed previously by do_extractFeatures.m
-load(allData_fname,'allData','allSegs','allSegLabels');
+load(allData_fname,'allData');
+
 
 %% add MRF information making adjacency matrix if it doesn't exist
 %[allDataMRF] = initMRF(allData);
 
 %% Call the actual EM routine
-[alpha, beta, sig] = lda_mrf(allData,Learn);
+[alpha, beta, sig] = lda_mrf(allData,Learn, VQ);
 
 %%% save the model and parameters used
-save(model_name,'alpha','beta','sig','Learn');
+save(model_name,'alpha','beta','sig','Learn', 'VQ');

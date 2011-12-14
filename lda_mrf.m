@@ -1,4 +1,4 @@
-function [alpha, beta, sig] = lda_mrf(data, Learn)
+function [alpha, beta, sig] = lda_mrf(data, Learn, VQ)
 %%%%%%%%%%
 % lda_mrf.m
 % Learn parameters for LDA+MRF, no gaussian noise channel
@@ -23,7 +23,7 @@ function [alpha, beta, sig] = lda_mrf(data, Learn)
 %% Learning Settings
 D = length(data);
 K = Learn.Num_Topics;
-L = size(data{1}.vq, 2); % length of code book
+L = VQ.Num_Vocab; % size of vocabulary
 E = Learn.Num_Neighbors;
 
 %% initialize parameters
@@ -40,7 +40,7 @@ for j = 1:Learn.Max_Iterations
   fprintf(1,'iteration %d/%d..\n',j,Learn.Max_Iterations);
   % initialize to store computed variational param for each image
   gammas = zeros(D, K);      
-  rhos = cell(D);
+  rhos = cell(D, 1);
   lams = zeros(D,1);
   lik = 0;
   %%%%% E step find the best variational parameters %%%%%
@@ -49,34 +49,28 @@ for j = 1:Learn.Max_Iterations
     gammas(d,:) = gamma;
     rhos{d} = rho; % Ndxk 
     lams(d) = lambda;
-    lik = lik + getLikelihood(data{d}, alpha, beta, sig, gamma, rho, lambda, Learn);
+    lik = lik + lda_mrf_lik(data{d}, alpha, beta, sig, gamma, rho, lambda);
   end
 
   %%%%% M-step of alpha and normalize beta and all the otehrs %%%%%
-  % being very pedantic, exact to the equation
   totalEdges = 0;
   for d=1:D
-      Nd = length(data{d}.segLabels); % number of regions    
-      dfeat = data{d}.vq; % Nd x L      
+      dd = data{d};
+      Nd = length(dd.segLabels); % number of regions    
+      vq = dd.vq; 
       for n=1:Nd        
-          d =dfeat(n,:)'; % Lx1
           rho = rhos{d};
-          ngbh = getNeighbors(data{d}, n, E);
+          ngbh = getNeighbors(dd, n, E);
           totalEdges = totalEdges + numel(ngbh);
-          keyboard
-          for k=1:K
-              for l=1:L
-                  sig = sig + sum(rho(n,k)*rho(ngbh, k));
-                  beta(k,l) = beta(k,l) + rhos(n, k)*d(l); 
-              end
-          end        
+          sig = sig + sum(sum(bsxfun(@times, rho(n,:), rho(ngbh, :))));
+          beta(:, vq(n)) = beta(:, vq(n)) + rho(n, :)';
       end
   end
   alpha = newton_alpha(gammas)
-  sig = 1/totalEdges*log(sig/sum(1/lams));
+  sig = 1/totalEdges*log(sig/sum(1./lams));
   % normalize beta 
   origbeta = beta;
-  beta = beta./(repmat(sum(beta,2),1,k))
+  beta = beta./(repmat(sum(beta,2),1,L));
   if (numel(find(isnan(beta))) > 0)
       fprintf(' in trf beta is nan\n');
       keyboard
@@ -92,14 +86,9 @@ for j = 1:Learn.Max_Iterations
   elapsed = toc;
   fprintf(1,'ETA:%s (%d sec/step)\r',rtime(elapsed * (Learn.Max_Iterations / j  - 1)),round(elapsed / j));
 end
-fprintf(1,'\n');
-end
 
-% alpha = normalize(fliplr(sort(rand(1,K))));
-% beta = ones(L,K)/L;
-% sig = 1;
-% gamma here is kx1
-% rho = ones(Nd, K)/K; % Nd by K
+end
+%fprintf(1,'\n');
 
 % if LDA:
 % dig = digamma(ldagamma);
@@ -108,14 +97,17 @@ end
 %     - gammaln(sum(ldagamma))+sum(gammaln(ldagamma)) ...
 % 	- sum((ldagamma-1).*(dig-digsum)) - sum(sum(ldaphi.*log(ldaphi))) ...
 % 	+ (dig-digsum)'*sum(ldaphi,2) + sum(sum(ldaphi.*log(b(:,d))));
-% di is Ndxm here
-function [likelihood] = trf_lik(data, alpha, beta, mu, del, sig, ... 
-                 gam, xi, rho, lambda, Learn)
+
+% alpha = K by 1
+% beta = K by L
+% rho = Nd by K
+% sig = scalar
+% gamma  = K by 1
+
+function [likelihood] = lda_mrf_lik(data, alpha, beta,sig,gam,rho,lambda)
   m = size(data,2); %number of features
-  K = Learn.Num_Topics;
-  L = Learn.Num_Prototypes;
-  Nd = length(data.segLabels); % number of regions    
-  d = data.feat2; % Nd x m   
+  Nd = size(data.feat2, 1); % number of regions    
+  d = data.vq; % Nd x 1   
   
   digamma = psi(gam);
   digamma_sum = psi(sum(gam));
@@ -123,7 +115,7 @@ function [likelihood] = trf_lik(data, alpha, beta, mu, del, sig, ...
       + sum((alpha-1).*(digamma - digamma_sum));
   line2 = (digamma-digamma_sum)*sum(rho)'; %need to add neighbor
                                           %terms
-  line3 = rho.*log(beta); % need to take the word count
+  line3 = sum(sum(rho.*log(beta(:, d)'))); % need to take the word count
   line5 = -gammaln(sum(gam)) + sum(gammaln(gam)) ...
            - sum( (gam-1).*(digamma - digamma_sum));
   line6 = - sum(sum(rho.*log(rho)));

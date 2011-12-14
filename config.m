@@ -1,6 +1,6 @@
 %%%%%%%%%%%%%%%%%%%%
 % The global configuration file 
-% Holds all settings used in all parts of the TRF, enabling the exact
+% Holds all settings used in all parts of LDA+MRF, enabling the exact
 % reproduction of the experiment at some future date.
 
 %%%%%
@@ -16,39 +16,40 @@ IMAGE_DIR = [ 'images/' ];
 % Data directory - holds all intermediate .mat files
 DATA_DIR = [ 'data/' ];   
 
-trainListName = [DATA_DIR,'trainList.txt'];
-evalListName = [DATA_DIR,'evalList.txt'];
+allData_fname_original = [DATA_DIR,'../RNN/data/iccv09-1-allNeighborPairs_eval.mat'];
+allData_fname = [DATA_DIR, 'stanford_vqed.mat'];
+evalData_fname = [DATA_DIR,'iccv09-1-allNeighborPairs_train_tiny.mat']; 
+%'iccv09-1-allNeighborPairs_eval.mat"
 
-allData_fname = [DATA_DIR,'iccv09-1-allNeighborPairs_train_tiny.mat'];
-evalData_fname = [DATA_DIR,'iccv09-1-allNeighborPairs_train_tiny.mat']; %'iccv09-1-allNeighborPairs_eval.mat"
 %%%%
 %% GLOBAL PARAMETERS
 %%%%
 
 %% Feature representation of all images
-% DEPRECIATED: should be a numImages x 1 cell array where each cell stores N_d x S matrix where N_d is the number of segments in image d, and S is the length of the feature vector
-% NOW, FOLLOWING RNN FORMAT:
-% the data is in format:
-% allData{1}:
-%           img: [240x320x3 uint8]
-%        labels: [240x320 double]
-%         segs2: [240x320 double]
-%         feat2: [115x119 double]
-%     segLabels: [115x1 double]
-%           adj: [115x115 logical]
+% FOLLOWING RNN FORMAT:
+% the data is a cell array of fields:
+%           img: [H x W x 3 uint8]
+%        labels: [H x W  double]
+%         segs2: [H x W  double]
+%         feat2: [Nd x M double]
+%     segLabels: [Nd x 1 double]
+%           adj: [Nd x Nd logical]
+%            vq: [Nd x L ] 
+% Where Nd is the number of regions for data d, M is the number of
+% features, L is the length of the code book.
 
-
-%% model parameters saved
-model_name = [DATA_DIR, 'TRF_model.mat'];
+%% model parameters savedp
+model_name = [DATA_DIR, 'LDA_MRF_model.mat'];
 
 %%%%%
 %% OVERSEGMENATAION SETTINGS
 %%%%%
 
 %%%%%
-%% FEATURE EXTRACTION SETTINGS
+%% FEATURE EXTRACTION/VQ SETTINGS
 %%%%%
-
+VQ.vocabulary_f = [DATA_DIR, 'vocabulary.mat'];
+VQ.Num_Vocab = 50; 
 
 %%%%%
 %% LEARNING SETTINGS
