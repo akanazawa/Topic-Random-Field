@@ -30,7 +30,7 @@ alpha = normalize(fliplr(sort(rand(1,K))));
 beta = ones(L,K)/L;
 sig = 1;
 mu = ones(L,K,m)/m;
-del = ones(L,K)/(2*L);
+del = ones(L,K)/(L);
 
 gammas = zeros(D, K);
 
@@ -77,6 +77,8 @@ for j = 1:Learn.Max_Iterations
         beta = beta + xiRho;
     end
     lams = lams + 1/lambda;    
+    mean(xi)
+    mean(rho)
     lik = lik + trf_lik(data{d}, pre_alpha, pre_beta, pre_mu, pre_del, ...
                         pre_sig, gamma, xi, rho, lambda, Learn);
 

@@ -38,8 +38,9 @@ for j=1:Learn.V_Max_Iterations
             for k = 1:K
                 lhs(l,k) = beta(l,k)*((2*pi*delta(l,k))^(-m/2));            
                 % in log lhs =log(beta(l,k))-(m/2)*log(2*pi*delta(l,k));
-                inside(l,k) = (x_n-squeeze(mu(l,k,:)))'*(x_n-squeeze(mu(l,k,:)))/(2*delta(l,k));
-                xi(n,l) = xi(n,l)*(lhs(l,k)*exp(-inside(l,k)))^rho(n,k);
+                inside(l,k) = (x_n-squeeze(mu(l,k,:)))'*(x_n- ...
+                                                         squeeze(mu(l,k,:)))/(2*delta(l,k));
+                xi(n,l) = xi(n,l)*(lhs(l,k)*exp(-inside(l,k)))^pre_rho(n,k);
  %in log                xi(n,l) = xi(n,l) + (lhs + -((x_n-squeeze(mu(l,k,:)))'*(x_n-squeeze(mu(l,k,:))))/(2*delta(l,k)))*exp(pre_rho(n,k));
             end % end k
         end % end l
@@ -53,13 +54,13 @@ for j=1:Learn.V_Max_Iterations
             rho(n,k) = exp(psi(gamma(k)) - psi(sum(gamma)) + sum(pre_rho(ngbh,k))*sig);
             for l = 1:L
                 %in log lhs =log(beta(l,k))-(m/2)*log(2*pi*delta(l,k));
-                rho(n,k) = rho(n,k)*(lhs(l,k)*exp(-inside(l,k)))^xi(n,l);
+                rho(n,k) = rho(n,k)*(lhs(l,k)*exp(-inside(l,k)))^pre_xi(n,l);
                 % in log                rho(n,k) = rho(n,k)+ (lhs-((x_n-squeeze(mu(l,k,:)))'*(x_n-squeeze(mu(l,k,:))))/(2*delta(l,k)))*exp(pre_xi(n,l));
             end % end l
         end % end k                
     end % end n        
     %% normalize rho and xi
-
+keyboard;
     origxi = xi;
     %    xi = exp(xi); % if above done in log
     xi = xi./(repmat(sum(xi,2),1,l));        
