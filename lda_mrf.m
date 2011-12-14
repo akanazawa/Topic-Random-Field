@@ -51,6 +51,8 @@ for j = 1:Learn.Max_Iterations
     lams(d) = lambda;
     lik = lik + lda_mrf_lik(data{d}, alpha, beta, sig, gamma, rho, lambda);
   end
+  keyboard
+  fprintf('likelihood = %g\t',lik);
 
   %%%%% M-step of alpha and normalize beta and all the otehrs %%%%%
   totalEdges = 0;
@@ -66,6 +68,7 @@ for j = 1:Learn.Max_Iterations
           beta(:, vq(n)) = beta(:, vq(n)) + rho(n, :)';
       end
   end
+
   alpha = newton_alpha(gammas)
   sig = 1/totalEdges*log(sig/sum(1./lams));
   % normalize beta 
@@ -75,8 +78,6 @@ for j = 1:Learn.Max_Iterations
       fprintf(' in trf beta is nan\n');
       keyboard
   end
-  % converge?
-  fprintf(1,'likelihood = %g\t',lik);
   if (j > 1) && converged(lik, pre_lik, 1.0e-5);
     fprintf(1,'\nconverged at iteration %d.\n', j);
     return;
@@ -115,7 +116,7 @@ function [likelihood] = lda_mrf_lik(data, alpha, beta,sig,gam,rho,lambda)
       + sum((alpha-1).*(digamma - digamma_sum));
   line2 = (digamma-digamma_sum)*sum(rho)'; %need to add neighbor
                                           %terms
-  line3 = sum(sum(rho.*log(beta(:, d)'))); % need to take the word count
+  line3 = sum(sum(rho.*log(beta(:, d)')));
   line5 = -gammaln(sum(gam)) + sum(gammaln(gam)) ...
            - sum( (gam-1).*(digamma - digamma_sum));
   line6 = - sum(sum(rho.*log(rho)));

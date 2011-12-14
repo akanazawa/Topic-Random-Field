@@ -37,7 +37,7 @@ for j=1:Learn.V_Max_Iterations
 
     for n = 1:Nd
         ngbh = getNeighbors(d, n, E);
-        rho(n,:) = beta(:, d_vq(1))'.*exp(psi(gamma) - psi(sum(gamma)) + sum(pre_rho(ngbh,:)*sig));
+        rho(n,:) = beta(:, d_vq(n))'.*exp(psi(gamma) - psi(sum(gamma)) + sum(pre_rho(ngbh,:)*sig));
     end
     %% normalize rho
     rho = rho./(repmat(sum(rho,2),1,K));                
@@ -50,6 +50,7 @@ for j=1:Learn.V_Max_Iterations
             converged(gamma, pre_gamma, tau)
         break;
     end
+    keyboard
     pre_rho = rho;
     pre_gamma = gamma;
 end

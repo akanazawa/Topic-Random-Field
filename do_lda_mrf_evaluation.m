@@ -24,30 +24,21 @@ for d = 1:length(allData)
     dfeat = allData{d}.feat2;
     Nd = length(allData{d}.segLabels); % number of regions    
     [gamma,rho,lambda] = vbem(allData{d}, beta, alpha,sig, Learn); 
-    % rho is Nd x K corresponding to the topic distribution
-    [bestScore, zs] = max(rho,[], 2);
+    keyboard
+    %% rho is Nd x K corresponding to the topic distribution? 
+    % [bestScore, zs] = max(rho,[], 2);
+    % pred_segLabels = zs;
+    %% or do log P(w | z, beta) 
+    Nd = length(allData{d}.segLabels); % number of regions
+    pred_segLabels = zeros(Nd,1);                             
+    d = allData{d}.vq; % (Nd x 1)
+    score = zeros(Nd, K);
+    score = rho.*log(beta(:, d)');
+    [bestScore, zs] = max(score,[], 2);
     pred_segLabels = zs;
+   
 end    
 
-    % dfeat = allData{d}.feat2;
-    % Nd = length(allData{d}.segLabels); % number of regions
-    % pred_segLabels = zeros(Nd,1);                             
-    % for n=1:Nd
-    %     dn = dfeat(n,:)'; % (m x 1)
-    %     ks = zeros(K,1);
-    %     for k = 1:K
-    %         score = 1;
-    %         for l=1:L
-    %             px_udel = exp(-(dn-squeeze(mu(l,k, :)))'*...
-    %                           (dn-squeeze(mu(l,k, :)))/(2*delta(l,k).^2) );        
-    %             score = beta(l,k)*px_udel;                
-    %         end
-    %         ks(k) = score;
-    %     end
-    %     ks;
-    %     [bestScore, z] = max(ks);
-    %     pred_segLabels(n) = z;
-    % end    
 
 
 colmap = [...
@@ -61,6 +52,7 @@ colmap = [...
     1.0000    0.6471         0;... % 8 Orange
          ];
 
+d = 2;
 sfigure; 
 plot(pred_segLabels, 'r.'); hold on;
 plot(allData{d}.segLabels, 'b.');
