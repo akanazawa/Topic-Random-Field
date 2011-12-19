@@ -31,9 +31,11 @@ for d = 1:length(allData)
     %% or do log P(w | z, beta) 
     Nd = length(allData{d}.segLabels); % number of regions
     pred_segLabels = zeros(Nd,1);                             
-    d = allData{d}.vq; % (Nd x 1)
+    d = allData{d}.vq_count; % (Nd x 1), indicates the number of occurance
     score = zeros(Nd, K);
-    score = rho.*log(beta(:, d)');
+    score = rho.*log(beta(:, find(d))'); % find(d) because we only
+                                         % need if the word appears
+                                         % or not
     [bestScore, zs] = max(score,[], 2);
     pred_segLabels = zs;
    

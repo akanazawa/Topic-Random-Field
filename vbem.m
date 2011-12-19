@@ -30,14 +30,17 @@ lambda = exp(totalEdges*sig);
 tau = 1e-2;
 pre_rho = rho;
 
-d_vq = d.vq; % Nd x 1˘
+d_vq = d.vq_count; % Nd x 1, positions indicate the number of occurance
 
 for j=1:Learn.V_Max_Iterations
     %    fprintf(1,'vb em itr %d/%d..',j,Learn.V_Max_Iterations);
     fprintf('.');
     for n = 1:Nd
         ngbh = getNeighbors(d, n, E);
-        rho(n,:) = beta(:, d_vq(n))'.*exp(psi(gamma) - psi(sum(gamma)) + sum(pre_rho(ngbh,:)*sig));
+        if d_vq(n)~=0
+            rho(n,:) = beta(:, n)'.*exp(psi(gamma) - psi(sum(gamma)) ...
+                                              + sum(pre_rho(ngbh,:)*sig));
+        end
     end
     %% normalize rho
     rho = rho./(repmat(sum(rho,2),1,K));                
